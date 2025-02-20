@@ -1,44 +1,9 @@
-# Beyond 5G Future Bike
+# Project aim
 
-🚴‍♂️ **Beyond 5G Future Bike** is an experimental project exploring the integration of next-generation wireless communication technologies into urban cycling experiences. This repository contains research, prototypes, and code related to connected bike systems leveraging Beyond 5G capabilities.
+🚴‍♂️ **BY5G_bike** aims to develop an intelligent bicycle safety system that enhances cyclist awareness and prevents accidents through real-time hazard detection and intuitive alerts. By integrating multi-sensory feedback—sound, light, and resistance—the system provides cyclists with gradual and non-intrusive warnings about potential dangers. The goal is to improve urban cycling safety, reduce accidents, and ultimately encourage more people to adopt bicycles as a sustainable mode of transportation.
 
 ## 🚀 Project Overview
 
-This project aims to:
-- Enhance cycling safety and navigation using ultra-low latency communication.
-- Enable real-time environmental sensing and V2X (Vehicle-to-Everything) interactions.
-- Investigate the role of AI and edge computing in connected mobility.
+The decline of bicycle usage in urban areas, particularly in cities like Tokyo, is largely attributed to safety concerns. Unlike motor vehicles, bicycles lack advanced safety features, making cyclists vulnerable to accidents, especially collisions with vehicles. Research shows that two of the most critical accident scenarios involve blind danger, where a vehicle suddenly appears from an obstructed view, and lane change accidents, where a cyclist moves into a car’s blind spot. Addressing these issues requires an innovative safety solution that can provide timely alerts and help cyclists make better riding decisions.
 
-## 📂 Repository Structure
-
-```
-├── hardware/         # Schematics and hardware-related files
-├── software/         # Firmware, applications, and network protocols
-├── data/             # Sensor logs and datasets
-├── docs/             # Research papers and documentation
-└── experiments/      # Prototyping and test results
-```
-
-## 🛠️ Getting Started
-
-### Prerequisites
-- Python 3.x / C++ (for embedded systems)
-- ROS2 (for robotics integration)
-- 5G-compatible networking hardware
-
-### Installation
-Clone this repository:
-```sh
-$ git clone https://github.com/yourusername/beyond-5g-bike.git
-$ cd beyond-5g-bike
-```
-Follow setup instructions in `docs/setup.md`.
-
-## 🤝 Contributing
-Contributions are welcome! Feel free to open issues, suggest improvements, or submit pull requests.
-
-## 📜 License
-This project is licensed under the MIT License.
-
-## 📧 Contact
-For inquiries, reach out via [email@example.com](mailto:email@example.com).
+To tackle these challenges, we designed and tested a safety system that integrates helmet-based sound alerts, handlebar LED indicators, and pedal resistance feedback. The system operates in two warning stages: a caution mode with yellow LED and slow-paced audio alerts and a danger mode with flashing red LED, intensified audio signals, and pedal resistance to encourage deceleration. Real-world tests demonstrated that this approach effectively helps cyclists anticipate and respond to potential threats, reducing the risk of accidents. Future improvements could incorporate AI-driven predictive safety systems and 6G-enabled V2X communication for enhanced situational awareness and seamless integration into smart city infrastructure.
