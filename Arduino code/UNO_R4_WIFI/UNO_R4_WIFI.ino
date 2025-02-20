@@ -3,18 +3,17 @@
 #include <ArduinoBLE.h>
 #include <Adafruit_NeoPixel.h>
 
-#define HALF_TURN_STEPS 50 // 반 바퀴 회전에 필요한 스텝 수
+#define HALF_TURN_STEPS 50 // steps for rotation
 #define TRIG_PIN_UNO 8
 #define ECHO_PIN_UNO 9
 
-#define LED_PIN 11         // Neopixel 신호핀
-#define LED_COUNT 5        // LED 개수
+#define LED_PIN 11         // Neopixel pin
+#define LED_COUNT 5        // LED number
 
-// Neopixel 스트립 객체 생성 (GRB 순서, 800kHz)
+// Neopixel operation
 Adafruit_NeoPixel strip(LED_COUNT, LED_PIN, NEO_GRB + NEO_KHZ800);
 
-// UNO 초음파 센서로부터 거리 측정 (cm 단위)
-// 타임아웃을 5000µs로 낮춰 빠른 응답을 유도함
+// Detection of ultrasonic of UNO (cm )
 long getDistanceUNO() {
   digitalWrite(TRIG_PIN_UNO, LOW);
   delayMicroseconds(2);
@@ -25,35 +24,36 @@ long getDistanceUNO() {
   return duration * 0.034 / 2;
 }
 
+//Using the Arduino motor shield
 Adafruit_MotorShield AFMS = Adafruit_MotorShield();
-Adafruit_StepperMotor *myMotor = AFMS.getStepper(200, 2); // 1번 모터 사용, 200 스텝
+Adafruit_StepperMotor *myMotor = AFMS.getStepper(200, 2); // Use motor number 2
 
-// 1번 나노 관련 BLE
+// BLE for Nano1
 BLEDevice nano1Device;
 BLEByteCharacteristic sensorCharacteristic("19B10001-E8F2-537E-4F6C-D104768A1214", BLERead | BLENotify);
 BLEByteCharacteristic nano1CommandCharacteristic("19B10004-E8F2-537E-4F6C-D104768A1214", BLEWrite);
 
-// 2번 나노 관련 BLE
+// BLE for Nano2
 BLEDevice nano2Device;
 BLEByteCharacteristic receivedCharacteristic("19B10002-E8F2-537E-4F6C-D104768A1214", BLEWrite);
 
 bool motorState = false;
 
-// 이전에 전송한 UNO 신호 (0, 5, 6, 7 중 하나)
+// Signal sent from UNO before
 byte prevUnoSignal = 255;
-// Nano1 센서에서 받은 마지막 값 (0, 1, 2, 3, 4)
+// Last sensor value from Nano1
 byte lastSensorValue = 0;
 
 void setup() {
   Serial.begin(9600);
   
-  // 초음파 센서 핀 초기화
+  // Reset the sensor pin
   pinMode(TRIG_PIN_UNO, OUTPUT);
   pinMode(ECHO_PIN_UNO, INPUT);
   
-  // Neopixel 초기화
+  // Reset the Neopixel
   strip.begin();
-  strip.show(); // 모든 LED를 off 상태로 초기화
+  strip.show();
   
   if (!BLE.begin()) {
     Serial.println("BLE 초기화 실패");
@@ -62,15 +62,15 @@ void setup() {
   
   Serial.println("BLE Central 시작됨 - 1번, 2번 나노 검색 중...");
   AFMS.begin();
-  myMotor->setSpeed(100); // 모터 속도 설정
+  myMotor->setSpeed(100); // Set the motor speed
 }
 
 void loop() {
-  // 1번 나노 검색 및 연결 (연결이 끊겼거나 서비스 연결 실패 시 재시도)
+  // Searching for the Nano1.  When disconnected, it automatically retry
   if (!nano1Device || (nano1Device && !nano1Device.connected())) {
     if(nano1Device && !nano1Device.connected()){
-      nano1Device.disconnect();  // 혹은 명시적으로 disconnect 호출
-      nano1Device = BLEDevice();   // 변수 초기화
+      nano1Device.disconnect();
+      nano1Device = BLEDevice();
     }
     BLE.scanForName("NanoUltrasonic");
     nano1Device = BLE.available();
@@ -111,7 +111,7 @@ void loop() {
     }
   }
   
-  // 2번 나노 검색 및 연결 (연결이 끊겼거나 서비스 연결 실패 시 재시도)
+  // Searching for the Nano2.  When disconnected, it automatically retry
   if (!nano2Device || (nano2Device && !nano2Device.connected())) {
     if(nano2Device && !nano2Device.connected()){
       nano2Device.disconnect();
@@ -145,7 +145,7 @@ void loop() {
     }
   }
   
-  // UNO 초음파 센서로부터 거리 측정 및 unoSignal 결정
+  // Sensing the distance using Ultrasonic
   long distanceUNO = getDistanceUNO();
   byte unoSignal;
   if (distanceUNO <= 100) {
@@ -155,10 +155,9 @@ void loop() {
   } else {
     unoSignal = 0;
   }
-  // Serial.println(distanceUNO);
   
-  // UNO 초음파 센서 신호 전송
-  // 5,6 신호는 감지되는 동안 계속 전송, 0은 상태 변화 시만 전송
+  // Send the ultrasonic data
+  // Keep sending the data while signal 5, 6 continues, send 0 when detection changes
   if (unoSignal == 5 || unoSignal == 6) {
     if (nano1Device && nano1Device.connected()) {
       nano1CommandCharacteristic.writeValue(unoSignal);
@@ -179,31 +178,31 @@ void loop() {
     }
   }
   
-  // 모터 제어: Nano1 센서 값(1~4)와 UNO 센서 값(5,6)을 결합하여 물체 감지 여부 판단
+  // Motor control
   bool objectDetected = false;
   
-  // Nano1 센서 값 업데이트 (값이 0이면 미감지로 간주)
+  // Update Nano1 sensor value
   if (nano1Device && nano1Device.connected()) {
     BLE.poll();
     if (sensorCharacteristic.valueUpdated()) {
       byte sensorValue;
       sensorCharacteristic.readValue(sensorValue);
       lastSensorValue = sensorValue;
-      // Nano2로 데이터 전달
+      // Send data to Nano2
       if (nano2Device && nano2Device.connected()) {
         receivedCharacteristic.writeValue(sensorValue);
       }
     }
   }
   
-  // 물체 감지 조건: Nano1 센서 값이 3 또는 4, 또는 UNO 센서 값이 6이면 감지된 것으로 처리
+  // Process the object detected when Nano1 send 3, 4 or sensor value of 6 from UNO
   if ((lastSensorValue == 3 || lastSensorValue == 4) || (unoSignal == 6)) {
     objectDetected = true;
   } else {
     objectDetected = false;
   }
   
-  // 모터 제어 (감지 시 전진 회전, 미감지 시 후진 회전)
+  // Control the motor
   if (objectDetected && !motorState) {
     delay(1000);
     myMotor->step(HALF_TURN_STEPS, BACKWARD, DOUBLE);
@@ -214,36 +213,35 @@ void loop() {
   }
   
   // ----------------------
-  // LED 스트립 제어 로직 추가
-  // 1. Nano1, Nano2 중 하나라도 연결이 안되어 있으면 1초 간격으로 파란색 깜빡임
-  // 2. BLE가 모두 연결되어 있고, 센서 신호(3,4 또는 UNO의 6)가 감지되면 빨간색으로 켜짐
-  // 3. 그 외의 경우 LED는 꺼짐
+  // Control LED
+  // 1. Blinks blue every 1 second if either Nano1 or Nano2 is not connected
+  // 2. Lights red when all BLEs are connected and a sensor signal (3,4 or 6 on UNO) is detected
+  // 3. Otherwise, the LED is off
   // ----------------------
   if (!( (nano1Device && nano1Device.connected()) && (nano2Device && nano2Device.connected()) )) {
-    // 블루투스 연결 미완료: 1초 간격으로 깜빡임
+    // BLE disconnected
     if ((millis() / 1000) % 2 == 0) {
       for (int i = 0; i < LED_COUNT; i++) {
-        strip.setPixelColor(i, strip.Color(0, 0, 255));  // 파란색
+        strip.setPixelColor(i, strip.Color(0, 0, 255));  // Blue
       }
     } else {
       for (int i = 0; i < LED_COUNT; i++) {
-        strip.setPixelColor(i, strip.Color(0, 0, 0));    // 꺼짐
+        strip.setPixelColor(i, strip.Color(0, 0, 0));    // Off
       }
     }
   }
   else if ((lastSensorValue == 3 || lastSensorValue == 4 || unoSignal == 6)) {
-    // 신호 3, 4, 6이 감지됨: 빨간색 고정
+    // Detect signal 3, 4, 6
     for (int i = 0; i < LED_COUNT; i++) {
-      strip.setPixelColor(i, strip.Color(255, 0, 0));  // 빨간색
+      strip.setPixelColor(i, strip.Color(255, 0, 0));  // Red
     }
   } else {
-    // 그 외: LED 끔
+    // LED off
     for (int i = 0; i < LED_COUNT; i++) {
       strip.setPixelColor(i, strip.Color(0, 0, 0));
     }
   }
   strip.show();
-  
-  // 루프 딜레이를 20ms로 줄여 빠른 반복을 유도
+
   delay(20);
 }
